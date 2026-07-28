@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Share2, Heart, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -10,7 +9,7 @@ interface FlightDetailHeroProps {
   rating: number;
   reviews: number;
   price: string;
-  imageUrl: string;
+  bookingHref: string;
 }
 
 export default function FlightDetailHero({
@@ -19,7 +18,7 @@ export default function FlightDetailHero({
   rating,
   reviews,
   price,
-  imageUrl,
+  bookingHref,
 }: FlightDetailHeroProps) {
   return (
     <section className="pt-28 pb-8 px-4 lg:px-6">
@@ -83,7 +82,7 @@ export default function FlightDetailHero({
               <button className="w-12 h-12 rounded-[4px] border border-foreground/10 flex items-center justify-center text-foreground hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all duration-300 group shadow-sm">
                 <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </button>
-                <Link href="/flights/book/1" className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-[4px] font-semibold transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 flex items-center justify-center gap-2 w-full md:w-auto active:scale-95">
+                <Link href={bookingHref} className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-[4px] font-semibold transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 flex items-center justify-center gap-2 w-full md:w-auto active:scale-95">
                   Book now
                 </Link>
             </div>

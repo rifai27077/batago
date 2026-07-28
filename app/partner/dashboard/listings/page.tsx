@@ -1,38 +1,37 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Plus, LayoutGrid, List, Check } from "lucide-react";
+import { Search, Plus, LayoutGrid, List } from "lucide-react";
 import ListingCard from "@/components/partner/dashboard/ListingCard";
 import type { Listing } from "@/components/partner/dashboard/ListingCard";
 import Pagination from "@/components/partner/dashboard/Pagination";
 import EmptyState from "@/components/partner/dashboard/EmptyState";
 import AddListingModal from "@/components/partner/dashboard/AddListingModal";
 import { getPartnerListings, createPartnerListing, deletePartnerListing, updatePartnerListing } from "@/lib/api";
+import { usePartner } from "@/components/partner/dashboard/PartnerContext";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
-function mapApiToListing(l: any): Listing {
-  let imageUrl = l.images?.[0]?.url || "";
-  if (imageUrl.startsWith("uploads/") || imageUrl.startsWith("/uploads/")) {
-    imageUrl = `${API_BASE}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
-  }
+function mapApiToListing(l: any, fallbackType: Listing["type"]): Listing {
   return {
     id: String(l.ID),
     name: l.name,
-    image: imageUrl,
+    image: "",
     location: l.address || (l.city?.name ? `${l.city.name}, ${l.city.country}` : ""),
     rating: l.rating || 0,
     reviewCount: l.total_reviews || 0,
     rooms: l.room_count || l.rooms || 0,
     occupancy: l.occupancy || 0,
     status: (l.status?.toLowerCase() || "active") as "active" | "draft" | "inactive",
-    type: (l.type?.toLowerCase() || "hotel") as any,
+    type: (l.type?.toLowerCase() || fallbackType) as Listing["type"],
   };
 }
 
 const statusFilters = ["All", "Active", "Draft", "Inactive"] as const;
 
 export default function ListingsPage() {
+  const { partnerType } = usePartner();
+  const fallbackType: Listing["type"] = partnerType === "airline" ? "flight" : "hotel";
+  const listingCountLabel = partnerType === "airline" ? "flight listings" : "properties";
+  const addButtonLabel = partnerType === "airline" ? "Add New Flight Listing" : "Add New Listing";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -49,10 +48,8 @@ export default function ListingsPage() {
     async function fetchListings() {
       try {
         const res = await getPartnerListings({ page: 1, limit: 100 });
-        if (res.data && res.data.length > 0) {
-          setListings(res.data.map(mapApiToListing));
-          setTotalListings(res.meta.total);
-        }
+        setListings((res.data || []).map((item) => mapApiToListing(item, fallbackType)));
+        setTotalListings(res.meta?.total || 0);
       } catch (err) {
         console.error("Failed to fetch listings", err);
       } finally {
@@ -60,34 +57,19 @@ export default function ListingsPage() {
       }
     }
     fetchListings();
-  }, []);
+  }, [fallbackType]);
 
   const handleSaveListing = async (data: any) => {
     try {
-      let imageUrl = "";
-      
-      if (data.image && data.image instanceof File) {
-        try {
-          const { uploadListingImage } = await import("@/lib/api");
-          const uploadRes = await uploadListingImage(data.image);
-          imageUrl = uploadRes.url;
-        } catch (uploadErr) {
-          console.error("Image upload failed:", uploadErr);
-          alert("Failed to upload image. Please try again.");
-          return;
-        }
-      }
-
       const listingData = {
         name: data.name,
         city_id: data.city_id || 1,
         description: data.description || "",
         address: data.address || data.location || "",
-        type: data.type || "hotel",
+        type: data.type || fallbackType,
         rooms: parseInt(data.rooms) || 1,
         price: data.price,
         amenities: data.amenities || [],
-        image_url: imageUrl,
         latitude: data.latitude,
         longitude: data.longitude,
       };
@@ -100,7 +82,7 @@ export default function ListingsPage() {
       
       const res = await getPartnerListings({ page: 1, limit: 100 });
       if (res.data) {
-        setListings(res.data.map(mapApiToListing));
+        setListings(res.data.map((item) => mapApiToListing(item, fallbackType)));
         setTotalListings(res.meta.total);
       }
     } catch (err) {
@@ -212,14 +194,14 @@ export default function ListingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Listings</h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{totalListings} properties listed</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{totalListings} {listingCountLabel} listed</p>
         </div>
         <button 
           onClick={() => setIsAddModalOpen(true)}
           className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm hover:shadow-md"
         >
           <Plus className="w-4 h-4" />
-          Add New Listing
+          {addButtonLabel}
         </button>
       </div>
 
@@ -298,7 +280,7 @@ export default function ListingsPage() {
              {selectedIds.length === paginatedData.length ? "Deselect All" : "Select All"}
            </button>
            <span className="text-sm text-gray-400 dark:text-slate-500">
-             {selectedIds.length} properties selected
+             {selectedIds.length} {listingCountLabel} selected
            </span>
         </div>
       </div>

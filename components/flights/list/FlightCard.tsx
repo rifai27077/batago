@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { Plane, Clock, ShieldCheck, Briefcase } from "lucide-react";
+import { Plane, ShieldCheck, Briefcase } from "lucide-react";
 
 interface FlightCardProps {
   airline: string;
@@ -22,7 +21,6 @@ interface FlightCardProps {
 
 export default function FlightCard({
   airline,
-  logo,
   departureTime,
   arrivalTime,
   duration,
@@ -31,13 +29,14 @@ export default function FlightCard({
   price,
   rating,
   reviews,
-  id = 1,
+  id,
   isFavourite = false,
   onToggle,
 }: FlightCardProps) {
   const routes = route.split(" - ");
   const fromCity = routes[0] || "From";
   const toCity = routes[1] || "To";
+  const detailHref = typeof id === "number" ? `/flights/list/${id}` : "/flights/list";
 
   return (
     <div className="bg-white rounded-[16px] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] p-0 hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.15)] transition-all overflow-hidden border border-gray-100 mb-4 group">
@@ -47,19 +46,12 @@ export default function FlightCard({
         <div className="flex-1 p-5 md:p-6 pb-4 lg:pb-6">
            
            {/* Header: Airline & Tags */}
-           <div className="flex items-center gap-4 mb-6">
-              <div className="relative w-10 h-10 md:w-12 md:h-12 border border-gray-100 rounded-full bg-white p-1 shadow-sm shrink-0 overflow-hidden">
-                <div className="w-full h-full rounded-full bg-linear-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
-                  {airline ? airline.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() : 'FL'}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-bold text-foreground text-sm">{airline}</h4>
-                <div className="flex items-center gap-2 mt-0.5 text-xs text-muted font-medium">
-                   <span className="flex items-center gap-1 text-green-600"><ShieldCheck className="w-3 h-3" /> Extra safe</span>
-                   <span>•</span>
-                   <span>Flight ID-{id}10</span>
-                </div>
+           <div className="mb-6">
+              <h4 className="font-bold text-foreground text-sm">{airline}</h4>
+              <div className="flex items-center gap-2 mt-0.5 text-xs text-muted font-medium">
+                 <span className="flex items-center gap-1 text-green-600"><ShieldCheck className="w-3 h-3" /> Extra safe</span>
+                 <span>•</span>
+                 <span>Flight ID-{id}10</span>
               </div>
            </div>
 
@@ -130,7 +122,7 @@ export default function FlightCard({
                  </svg>
               </button>
               
-              <Link href="/flights/list/1" className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm shadow-md shadow-primary/20 hover:-translate-y-0.5 text-center w-full block">
+              <Link href={detailHref} className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm shadow-md shadow-primary/20 hover:-translate-y-0.5 text-center w-full block">
                 Select
               </Link>
            </div>

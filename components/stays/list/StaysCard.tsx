@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Star } from "lucide-react";
 
@@ -21,7 +20,6 @@ interface StaysCardProps {
 export default function StaysCard({
   id,
   name,
-  image,
   location,
   rating,
   reviews,
@@ -32,31 +30,8 @@ export default function StaysCard({
   onToggle,
 }: StaysCardProps) {
   return (
-    <div className="bg-white rounded-[12px] shadow-[0_4px_16px_rgba(17,34,17,0.05)] p-0 hover:shadow-[0_4px_24px_rgba(17,34,17,0.08)] transition-all flex flex-col lg:flex-row overflow-hidden border border-foreground/5">
-      {/* Hotel Image Section */}
-      <div className="relative w-full lg:w-[300px] h-48 lg:h-auto shrink-0">
-        {image ? (
-          <Image 
-            src={image} 
-            alt={name} 
-            fill 
-            className="object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-            <span className="text-white text-4xl font-bold opacity-50">
-              {name ? name.split(' ').map(w => w[0]).join('').substring(0, 3).toUpperCase() : 'HTL'}
-            </span>
-          </div>
-        )}
-        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">
-            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-            <span className="text-xs font-bold text-foreground">{rating}</span>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 p-6 lg:p-6 flex flex-col justify-between">
+    <div className="bg-white rounded-[12px] shadow-[0_4px_16px_rgba(17,34,17,0.05)] p-0 hover:shadow-[0_4px_24px_rgba(17,34,17,0.08)] transition-all overflow-hidden border border-foreground/5">
+      <div className="p-6 lg:p-6 flex flex-col justify-between">
         <div className="flex justify-between items-start">
             <div>
                 <h3 className="text-xl font-bold text-foreground mb-2">{name}</h3>
@@ -65,6 +40,10 @@ export default function StaysCard({
                     <span>{location}</span>
                 </div>
                 <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-amber-700">
+                        <Star className="w-3 h-3 fill-current" />
+                        <span className="text-xs font-bold">{rating.toFixed(1)}</span>
+                    </div>
                     <div className="flex items-center gap-1">
                         {[...Array(5)].map((_, i) => (
                             <Star 
@@ -91,7 +70,7 @@ export default function StaysCard({
                 </div>
             </div>
 
-            <div className="text-right hidden lg:block">
+            <div className="text-right hidden lg:block shrink-0">
                 <p className="text-xs text-foreground/50 font-bold tracking-wider mb-1">starting from</p>
                 <div className="text-2xl font-bold text-secondary">{pricePerNight}</div>
                 <p className="text-[10px] text-foreground/40 font-bold mb-1">excl. tax</p>

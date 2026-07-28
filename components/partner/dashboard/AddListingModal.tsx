@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Building2, MapPin, BedDouble, Wifi, Coffee, Utensils, Tv, Wind, CheckCircle2, ChevronRight, Camera, Car, Dumbbell, Waves, UtensilsCrossed, ConciergeBell, Sparkles, Loader2, Upload, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { X, Building2, MapPin, BedDouble, Wifi, Coffee, Utensils, Tv, Wind, CheckCircle2, ChevronRight, Car, Dumbbell, Waves, UtensilsCrossed, ConciergeBell, Sparkles, Loader2, Plane } from "lucide-react";
 import dynamic from "next/dynamic";
+import { usePartner } from "./PartnerContext";
 
 // Dynamically import map component to avoid SSR issues with Leaflet
 const MapComponent = dynamic(() => import("./MapPicker"), {
@@ -59,20 +60,31 @@ const AMENITIES = [
 const DEFAULT_CENTER = { lat: 1.0456, lng: 104.0305 };
 
 export default function AddListingModal({ isOpen, onClose, onSave, editData }: AddListingModalProps) {
+  const { partnerType } = usePartner();
+  const defaultListingType = partnerType === "airline" ? "flight" : "hotel";
+  const listingTypes = partnerType === "airline"
+    ? [{ id: "flight", label: "Flight", icon: Plane }]
+    : PROPERTY_TYPES;
+  const listingNameLabel = partnerType === "airline" ? "Listing Name" : "Property Name";
+  const listingTypeLabel = partnerType === "airline" ? "Listing Type" : "Property Type";
+  const locationLabel = partnerType === "airline" ? "Base Location" : "Location Address";
+  const featureLabel = partnerType === "airline" ? "Service Features" : "Amenities";
+  const unitLabel = partnerType === "airline" ? "Total Units" : "Total Rooms";
+  const priceLabel = partnerType === "airline" ? "Base Price" : "Base Price (per night)";
+  const priceHelp = partnerType === "airline"
+    ? "Enter the base selling price in Indonesian Rupiah"
+    : "Enter the base price per night in Indonesian Rupiah";
   const [step, setStep] = useState(1);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     name: "",
-    type: "hotel",
+    type: defaultListingType,
     location: "",
     description: "",
     rooms: 1,
     amenities: [] as string[],
     price: "",
-    image: null as File | null,
     latitude: DEFAULT_CENTER.lat,
     longitude: DEFAULT_CENTER.lng,
   });
@@ -82,38 +94,32 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
     if (editData && isOpen) {
       setFormData({
         name: editData.name || "",
-        type: editData.type || "hotel",
+        type: editData.type || defaultListingType,
         location: editData.location || "",
         description: editData.description || "",
         rooms: editData.rooms || 1,
         amenities: editData.amenities || [],
         price: editData.price || "",
-        image: null,
         latitude: editData.latitude || DEFAULT_CENTER.lat,
         longitude: editData.longitude || DEFAULT_CENTER.lng,
       });
-      if (editData.image && !editData.image.includes("unsplash.com")) {
-        setImagePreview(editData.image);
-      }
       setStep(1);
     } else if (!isOpen) {
       // Reset form when modal closes
       setFormData({
         name: "",
-        type: "hotel",
+        type: defaultListingType,
         location: "",
         description: "",
         rooms: 1,
         amenities: [],
         price: "",
-        image: null,
         latitude: DEFAULT_CENTER.lat,
         longitude: DEFAULT_CENTER.lng,
       });
-      setImagePreview(null);
       setStep(1);
     }
-  }, [editData, isOpen]);
+  }, [defaultListingType, editData, isOpen]);
 
   // Load Leaflet CSS dynamically when modal opens
   useEffect(() => {
@@ -132,33 +138,6 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert("File size must be less than 10MB");
-        return;
-      }
-      
-      setFormData({ ...formData, image: file });
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setFormData({ ...formData, image: null });
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
     setFormData((prev) => ({ ...prev, latitude: lat, longitude: lng }));
@@ -197,7 +176,7 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add New Listing</h2>
             <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
-              Step {step} of 3: {step === 1 ? "Basic Information" : step === 2 ? "Property Details" : "Photos & Pricing"}
+              Step {step} of 3: {step === 1 ? "Basic Information" : step === 2 ? "Details" : "Pricing & Review"}
             </p>
           </div>
           <button 
@@ -224,12 +203,12 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
               {/* Property Name */}
               <div>
                 <label htmlFor="property-name" className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">
-                  Property Name <span className="text-red-500">*</span>
+                  {listingNameLabel} <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="property-name"
                   type="text"
-                  placeholder="e.g. Grand Batam Hotel"
+                  placeholder={partnerType === "airline" ? "e.g. Batam Shuttle Flight" : "e.g. Grand Batam Hotel"}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all dark:text-white"
@@ -238,9 +217,9 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
 
               {/* Property Type */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-3">Property Type</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {PROPERTY_TYPES.map((t) => (
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-3">{listingTypeLabel}</label>
+                <div className={`grid gap-3 ${listingTypes.length > 1 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1"}`}>
+                  {listingTypes.map((t) => (
                     <button
                       id={t.id}
                       key={t.id}
@@ -263,14 +242,14 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
               {/* Location Address */}
               <div>
                 <label htmlFor="location-address" className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">
-                  Location Address <span className="text-red-500">*</span>
+                  {locationLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     id="location-address"
                     type="text"
-                    placeholder="e.g. Jl. Nagoya Hill, Batam"
+                    placeholder={partnerType === "airline" ? "e.g. Batam Center" : "e.g. Jl. Nagoya Hill, Batam"}
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all dark:text-white"
@@ -284,7 +263,7 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
                   Pin Location on Map
                 </label>
                 <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-                  Click on the map to set your property location. This helps guests find you easily.
+                  Click on the map to set your primary operating location.
                 </p>
                 <div className="rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-700 h-64 relative">
                   {mapReady ? (
@@ -316,7 +295,7 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
                 </label>
                 <textarea
                   id="description"
-                  placeholder="Tell guests about your property, what makes it special, nearby attractions, etc..."
+                  placeholder={partnerType === "airline" ? "Describe your service, schedule highlights, or route coverage..." : "Tell guests about your property, what makes it special, nearby attractions, etc..."}
                   rows={4}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -327,10 +306,10 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
               {/* Amenities with Checkboxes */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-3">
-                  Amenities
+                  {featureLabel}
                 </label>
                 <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-                  Select all amenities available at your property
+                  {partnerType === "airline" ? "Select all service features you want to highlight" : "Select all amenities available at your property"}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {AMENITIES.map((amenity) => (
@@ -369,7 +348,7 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
               {/* Total Rooms */}
               <div>
                 <label htmlFor="total-rooms" className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">
-                  Total Rooms
+                  {unitLabel}
                 </label>
                 <input
                   id="total-rooms"
@@ -385,75 +364,10 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
 
           {step === 3 && (
             <div className="space-y-6">
-              {/* Main Property Photo with Preview */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-3">
-                  Main Property Photo
-                </label>
-                
-                {imagePreview ? (
-                  <div className="relative rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-700">
-                    <img 
-                      src={imagePreview} 
-                      alt="Property preview" 
-                      className="w-full h-64 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-green-400" />
-                        <span className="text-sm font-medium text-white">
-                          {formData.image?.name}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={removeImage}
-                        className="p-2 bg-red-500/90 hover:bg-red-600 rounded-xl text-white transition-colors"
-                        title="Remove image"
-                        aria-label="Remove image"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-primary/50 transition-colors cursor-pointer group"
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Click to upload photo"
-                    title="Click to upload photo"
-                  >
-                    <div className="w-16 h-16 bg-gray-50 dark:bg-slate-900 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <Camera className="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors" />
-                    </div>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">Click to upload photo</p>
-                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">PNG, JPG up to 10MB</p>
-                    <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
-                      <Upload className="w-3 h-3" />
-                      <span>or drag and drop</span>
-                    </div>
-                  </div>
-                )}
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg"
-                  onChange={handleImageChange}
-                  className="hidden"
-                  aria-label="Upload property photo"
-                  title="Upload property photo"
-                />
-              </div>
-
               {/* Base Price */}
               <div>
                 <label htmlFor="base-price" className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">
-                  Base Price (per night) <span className="text-red-500">*</span>
+                  {priceLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">Rp</span>
@@ -467,7 +381,7 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
                   />
                 </div>
                 <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                  Enter the base price per night in Indonesian Rupiah
+                  {priceHelp}
                 </p>
               </div>
 
@@ -489,11 +403,11 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
                 <h4 className="text-sm font-bold text-gray-900 dark:text-white">Listing Summary</h4>
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="text-gray-500 dark:text-slate-400">Property Name:</span>
+                    <span className="text-gray-500 dark:text-slate-400">{listingNameLabel}:</span>
                     <p className="font-medium text-gray-900 dark:text-white">{formData.name || "-"}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500 dark:text-slate-400">Property Type:</span>
+                    <span className="text-gray-500 dark:text-slate-400">{listingTypeLabel}:</span>
                     <p className="font-medium text-gray-900 dark:text-white capitalize">{formData.type}</p>
                   </div>
                   <div>
@@ -501,11 +415,11 @@ export default function AddListingModal({ isOpen, onClose, onSave, editData }: A
                     <p className="font-medium text-gray-900 dark:text-white">{formData.location || "-"}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500 dark:text-slate-400">Total Rooms:</span>
+                    <span className="text-gray-500 dark:text-slate-400">{unitLabel}:</span>
                     <p className="font-medium text-gray-900 dark:text-white">{formData.rooms}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500 dark:text-slate-400">Amenities:</span>
+                    <span className="text-gray-500 dark:text-slate-400">{featureLabel}:</span>
                     <p className="font-medium text-gray-900 dark:text-white">{formData.amenities.length} selected</p>
                   </div>
                   <div>

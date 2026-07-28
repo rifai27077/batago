@@ -1,10 +1,10 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { ArrowLeft, Save, Building2, MapPin, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Building2, MapPin, CheckCircle2, AlertCircle, Loader2, Plane } from "lucide-react";
 import Link from "next/link";
-import PhotoGalleryManager from "@/components/partner/dashboard/PhotoGalleryManager";
 import { getPartnerListings, updatePartnerListing } from "@/lib/api";
+import { usePartner } from "@/components/partner/dashboard/PartnerContext";
 
 const PROPERTY_TYPES = [
   { id: "hotel", label: "Hotel" },
@@ -31,6 +31,18 @@ interface PageProps {
 
 export default function EditListingPage({ params }: PageProps) {
   const { id } = use(params);
+  const { partnerType } = usePartner();
+  const listingTypes = partnerType === "airline"
+    ? [{ id: "flight", label: "Flight" }]
+    : PROPERTY_TYPES;
+  const listingNameLabel = partnerType === "airline" ? "Listing Name" : "Property Name";
+  const listingTypeLabel = partnerType === "airline" ? "Listing Type" : "Property Type";
+  const unitLabel = partnerType === "airline" ? "Total Units" : "Total Rooms";
+  const featuresLabel = partnerType === "airline" ? "Services & Features" : "Amenities & Features";
+  const pricingLabel = partnerType === "airline" ? "Base Price" : "Base Price (per night)";
+  const helpText = partnerType === "airline"
+    ? "This is the starting price. You can adjust operational pricing later."
+    : "This is the starting price. You can set dynamic pricing in the Calendar.";
   
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -42,7 +54,6 @@ export default function EditListingPage({ params }: PageProps) {
     rooms: 0,
     cityId: 0,
     amenities: [] as string[],
-    photos: [] as { id: string; url: string; isMain: boolean }[],
     price: "",
     status: "active",
   });
@@ -66,23 +77,12 @@ export default function EditListingPage({ params }: PageProps) {
 
             setFormData({
               name: listing.name || "",
-              type: listing.type?.toLowerCase() || "hotel",
+              type: listing.type?.toLowerCase() || (partnerType === "airline" ? "flight" : "hotel"),
               location: listing.address || (listing.city?.name ? `${listing.city.name}, ${listing.city.country}` : ""),
               description: listing.description || "",
               rooms: listing.room_count || listing.rooms || 0,
               cityId: listing.city_id || 0,
               amenities: matchedAmenities,
-              photos: listing.images?.map((img: any, idx: number) => {
-                let url = img.url;
-                if (url.startsWith("uploads/") || url.startsWith("/uploads/")) {
-                  url = `http://localhost:8080${url.startsWith("/") ? "" : "/"}${url}`;
-                }
-                return {
-                  id: String(idx),
-                  url: url,
-                  isMain: img.is_primary,
-                };
-              }) || [],
               price: listing.base_price ? String(listing.base_price) : "",
               status: listing.status?.toLowerCase() || "active",
             });
@@ -98,7 +98,7 @@ export default function EditListingPage({ params }: PageProps) {
       }
     }
     fetchListing();
-  }, [id]);
+  }, [id, partnerType]);
 
   const toggleAmenity = (amenityId: string) => {
     setFormData((prev) => ({
@@ -121,10 +121,6 @@ export default function EditListingPage({ params }: PageProps) {
         city_id: formData.cityId,
         price: parseFloat(formData.price) || 0,
         amenities: formData.amenities,
-        images: formData.photos.map(p => ({
-          url: p.url.replace("http://localhost:8080/", ""),
-          is_primary: p.isMain
-        })),
         status: formData.status,
       });
       setSaveSuccess(true);
@@ -204,13 +200,13 @@ export default function EditListingPage({ params }: PageProps) {
           {/* Basic Info */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-6 space-y-5">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-gray-400" />
+              {partnerType === "airline" ? <Plane className="w-5 h-5 text-gray-400" /> : <Building2 className="w-5 h-5 text-gray-400" />}
               Basic Information
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="col-span-2">
-                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">Property Name</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">{listingNameLabel}</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -220,20 +216,20 @@ export default function EditListingPage({ params }: PageProps) {
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">Property Type</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">{listingTypeLabel}</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all dark:text-white cursor-pointer"
                 >
-                  {PROPERTY_TYPES.map(t => (
+                  {listingTypes.map(t => (
                     <option key={t.id} value={t.id}>{t.label}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">Total Rooms</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">{unitLabel}</label>
                 <input
                   type="number"
                   value={formData.rooms}
@@ -267,18 +263,9 @@ export default function EditListingPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Photos */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-6 space-y-5">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Property Photos</h2>
-            <PhotoGalleryManager 
-              initialPhotos={formData.photos} 
-              onPhotosChange={(photos) => setFormData(prev => ({ ...prev, photos }))}
-            />
-          </div>
-
           {/* Amenities */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-6 space-y-5">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Amenities & Features</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{featuresLabel}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {AMENITIES.map((a) => (
                 <label 
@@ -377,7 +364,7 @@ export default function EditListingPage({ params }: PageProps) {
            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-6 space-y-4">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Pricing</h2>
             <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">Base Price (per night)</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">{pricingLabel}</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">Rp</span>
                 <input
@@ -389,7 +376,7 @@ export default function EditListingPage({ params }: PageProps) {
               </div>
               <p className="text-xs text-gray-500 dark:text-slate-400 mt-2 flex items-start gap-1">
                 <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
-                This is the starting price. You can set dynamic pricing in the Calendar.
+                {helpText}
               </p>
             </div>
           </div>

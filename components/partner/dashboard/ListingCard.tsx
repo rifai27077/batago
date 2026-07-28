@@ -1,8 +1,19 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Star, Bed, MoreVertical, Pencil, Eye, Trash2, Check } from "lucide-react";
+import {
+  MapPin,
+  Star,
+  MoreVertical,
+  Pencil,
+  Eye,
+  Trash2,
+  Check,
+  Building2,
+  Plane,
+  BarChart3,
+  Layers3,
+} from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import type { StatusType } from "./StatusBadge";
 import { useState, useRef, useEffect } from "react";
@@ -29,9 +40,20 @@ interface ListingCardProps {
   onDelete?: (id: string) => void;
 }
 
-export default function ListingCard({ listing, selectable = false, selected = false, onSelect, onEdit, onDelete }: ListingCardProps) {
+export default function ListingCard({
+  listing,
+  selectable = false,
+  selected = false,
+  onSelect,
+  onEdit,
+  onDelete,
+}: ListingCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const isAirline = listing.type === "flight";
+  const ListingIcon = isAirline ? Plane : Building2;
+  const inventoryLabel = isAirline ? "Inventory" : "Rooms";
+  const performanceLabel = isAirline ? "Load Factor" : "Occupancy";
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -42,60 +64,51 @@ export default function ListingCard({ listing, selectable = false, selected = fa
   }, []);
 
   return (
-    <div 
-      className={`bg-white dark:bg-slate-800 rounded-2xl border transition-all duration-200 group relative ${
-        selected 
-          ? "border-primary ring-1 ring-primary shadow-md" 
+    <div
+      className={`bg-white dark:bg-slate-800 rounded-2xl border transition-all duration-200 relative ${
+        selected
+          ? "border-primary ring-1 ring-primary shadow-md"
           : "border-gray-100 dark:border-slate-700 hover:shadow-md"
       }`}
     >
-      {/* Image */}
-      <div className="relative h-44 overflow-hidden rounded-t-2xl">
-        {listing.image ? (
-          <Image
-            src={listing.image}
-            alt={listing.name}
-            fill
-            unoptimized={listing.image.includes("localhost") || listing.image.includes("127.0.0.1") || listing.image.includes("uploads/")}
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
-            <span className="text-white text-4xl font-bold opacity-40">
-              {listing.name ? listing.name.split(' ').map(w => w[0]).join('').substring(0, 3).toUpperCase() : 'HTL'}
-            </span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        
-        {/* Selection Checkbox - Always visible if selected or selectable mode is active, otherwise on hover */}
-        {(selectable || selected) && onSelect && (
-          <div className="absolute top-3 left-3 z-10">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(listing.id);
-              }}
-              className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                selected
-                  ? "bg-primary border-primary text-white"
-                  : "bg-white/80 border-gray-300 hover:border-primary backdrop-blur-sm"
-              }`}
-            >
-              {selected && <Check className="w-4 h-4" />}
-            </button>
-          </div>
-        )}
+      <div className="p-4 border-b border-gray-100 dark:border-slate-700">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            {(selectable || selected) && onSelect && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect(listing.id);
+                }}
+                className={`mt-1 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                  selected
+                    ? "bg-primary border-primary text-white"
+                    : "bg-white border-gray-300 hover:border-primary"
+                }`}
+              >
+                {selected && <Check className="w-4 h-4" />}
+              </button>
+            )}
 
-        <div className="absolute top-3 right-3">
-          <StatusBadge status={listing.status} />
-        </div>
-      </div>
+            <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <ListingIcon className="w-5 h-5" />
+            </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold text-gray-900 dark:text-white leading-tight line-clamp-1">{listing.name}</h3>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1.5">
+                <StatusBadge status={listing.status} />
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+                  {isAirline ? "Airline" : "Hotel"}
+                </span>
+              </div>
+              <h3 className="font-bold text-gray-900 dark:text-white leading-tight line-clamp-1">{listing.name}</h3>
+              <div className="flex items-center gap-1 mt-1.5 text-sm text-gray-500 dark:text-slate-400">
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{listing.location || "-"}</span>
+              </div>
+            </div>
+          </div>
+
           <div ref={menuRef} className="relative flex-shrink-0">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
@@ -103,8 +116,8 @@ export default function ListingCard({ listing, selectable = false, selected = fa
             >
               <MoreVertical className="w-4 h-4" />
             </button>
-              {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-slate-700 rounded-xl shadow-xl border border-gray-100 dark:border-slate-600 overflow-hidden z-20">
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-slate-700 rounded-xl shadow-xl border border-gray-100 dark:border-slate-600 overflow-hidden z-20">
                 <Link href={`/partner/dashboard/listings/${listing.id}`} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
                   <Eye className="w-4 h-4" /> View
                 </Link>
@@ -119,29 +132,41 @@ export default function ListingCard({ listing, selectable = false, selected = fa
             )}
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-1 mt-1.5 text-sm text-gray-500 dark:text-slate-400">
-          <MapPin className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">{listing.location}</span>
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl bg-gray-50 dark:bg-slate-900 p-3">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400">
+              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              Rating
+            </div>
+            <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{listing.rating}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">{listing.reviewCount} reviews</p>
+          </div>
+
+          <div className="rounded-xl bg-gray-50 dark:bg-slate-900 p-3">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400">
+              <Layers3 className="w-3.5 h-3.5" />
+              {inventoryLabel}
+            </div>
+            <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{listing.rooms}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">{isAirline ? "active units" : "available units"}</p>
+          </div>
+
+          <div className="rounded-xl bg-gray-50 dark:bg-slate-900 p-3">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400">
+              <BarChart3 className="w-3.5 h-3.5" />
+              {performanceLabel}
+            </div>
+            <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{listing.occupancy}%</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">current average</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 mt-3 text-sm">
-          <div className="flex items-center gap-1">
-            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-            <span className="font-semibold text-gray-800 dark:text-slate-200">{listing.rating}</span>
-            <span className="text-gray-400 dark:text-slate-500">({listing.reviewCount})</span>
-          </div>
-          <span className="text-gray-200 dark:text-slate-600">|</span>
-          <div className="flex items-center gap-1 text-gray-500 dark:text-slate-400">
-            <Bed className="w-4 h-4" />
-            <span>{listing.rooms} rooms</span>
-          </div>
-        </div>
-
-        {/* Occupancy Bar */}
-        <div className="mt-3">
+        <div>
           <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="text-gray-500 dark:text-slate-400 font-medium">Occupancy</span>
+            <span className="text-gray-500 dark:text-slate-400 font-medium">{performanceLabel}</span>
             <span className={`font-bold ${listing.occupancy >= 70 ? "text-emerald-600" : listing.occupancy >= 40 ? "text-amber-600" : "text-red-500"}`}>
               {listing.occupancy}%
             </span>
@@ -156,15 +181,14 @@ export default function ListingCard({ listing, selectable = false, selected = fa
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2">
           <Link
             href={`/partner/dashboard/listings/${listing.id}`}
             className="flex-1 text-center bg-primary/5 hover:bg-primary/10 text-primary text-sm font-semibold py-2 rounded-xl transition-colors"
           >
             Manage
           </Link>
-          <button 
+          <button
             onClick={() => onEdit?.(listing)}
             className="flex-1 text-center bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-600 dark:text-slate-300 text-sm font-medium py-2 rounded-xl transition-colors"
           >

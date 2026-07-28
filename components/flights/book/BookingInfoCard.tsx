@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Star, Clock, ShieldCheck, Loader2, Check, Tag } from "lucide-react";
 import { useState } from "react";
 import { validatePromoCode, FlightResult } from "@/lib/api";
@@ -67,15 +66,7 @@ export default function BookingInfoCard({
       </div>
 
       {/* Airline Info */}
-      <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-        <div className="w-14 h-14 relative rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
-           <Image 
-             src="https://www.vectorlogo.zone/logos/emirates/emirates-icon.svg" 
-             alt={flight?.airline || "Airline"} 
-             fill 
-             className="object-contain p-2" 
-           />
-        </div>
+      <div className="mb-6 pb-6 border-b border-gray-100">
         <div>
           <h4 className="font-bold text-foreground text-lg">{flight?.partner?.company_name || flight?.airline}</h4>
           <p className="text-sm text-muted">{flight?.flight_number}</p>

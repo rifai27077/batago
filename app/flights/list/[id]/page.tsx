@@ -38,7 +38,6 @@ export default function FlightDetailPage() {
             rating: 4.5, // Mock rating as it's not in flight model yet
             reviews: 120, // Mock reviews
             price: `Rp ${(seats.sort((a: any, b: any) => a.price - b.price)[0]?.price || 0).toLocaleString()} (Min)`,
-            imageUrl: "https://images.unsplash.com/photo-1540339832862-474599807836?q=80&w=2000&auto=format&fit=crop",
             airlineLogo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Emirates_logo.svg/200px-Emirates_logo.svg.png", // Placeholder
             airlineName: flight.airline,
             aircraft: "Boeing 737", // Mock
@@ -82,7 +81,7 @@ export default function FlightDetailPage() {
           rating={flightData.rating}
           reviews={flightData.reviews}
           price={flightData.price}
-          imageUrl={flightData.imageUrl}
+          bookingHref={`/flights/book/${id}`}
         />
 
 
